@@ -1,12 +1,18 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  Dimensions,
+} from "react-native";
 import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
-
 const { height } = Dimensions.get("window");
 
-const OnboardingScreen2 = () => {
+const OnboardingScreen3 = () => {
   const router = useRouter();
 
   return (
@@ -15,12 +21,14 @@ const OnboardingScreen2 = () => {
       <View style={styles.bottomHalf} />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
-          <Text style={styles.title}>Update trendy outfit</Text>
-          <Text style={styles.subtitle}>Favorite brands and hottest trends</Text>
+          <Text style={styles.title}>Explore your true style</Text>
+          <Text style={styles.subtitle}>
+            Relax and let us bring the style to you
+          </Text>
           <View style={styles.imageWrapper}>
             <View style={styles.imageCard}>
               <Image
-                source={require("../../assets/onboarding/on_boarding2.png")}
+                source={require("../../assets/onboarding/on_boarding3.png")}
                 style={styles.productImage}
                 resizeMode="contain"
               />
@@ -29,13 +37,13 @@ const OnboardingScreen2 = () => {
           <View style={styles.bottomSection}>
             <View style={styles.pagination}>
               <View style={styles.dot} />
-              <View style={[styles.dot, styles.activeDot]} />
               <View style={styles.dot} />
+              <View style={[styles.dot, styles.activeDot]} />
             </View>
             <TouchableOpacity
               style={styles.button}
               activeOpacity={0.8}
-            onPress={() => router.replace("/onboarding/OnboardingScreen3")}
+              onPress={() => router.replace("/user/LoginScreen")}
             >
               <Text style={styles.buttonText}>Shopping now</Text>
             </TouchableOpacity>
@@ -46,7 +54,7 @@ const OnboardingScreen2 = () => {
   );
 };
 
-export default OnboardingScreen2;
+export default OnboardingScreen3;
 
 const styles = StyleSheet.create({
   root: {
@@ -96,21 +104,21 @@ const styles = StyleSheet.create({
     fontFamily: "ProductSans-Regular",
   },
   imageWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
     marginTop: 24,
     marginBottom: 0,
     zIndex: 2,
   },
   imageCard: {
-    backgroundColor: '#E7E8E9',
+    backgroundColor: "#E7E8E9",
     borderRadius: 24,
     width: 261,
     height: 368,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
     shadowOpacity: 0.08,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
@@ -119,7 +127,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: 240,
     height: 340,
-    alignSelf: 'center',
+    alignSelf: "center",
     marginTop: 30,
   },
   bottomSection: {
