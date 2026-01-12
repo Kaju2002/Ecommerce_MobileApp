@@ -36,7 +36,7 @@ const LoginScreen = () => {
         <TouchableOpacity style={styles.forgotBtn} onPress={() => router.push("/user/ForgotPasswordScreen")}>
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
-         <TouchableOpacity style={styles.loginBtn}>
+         <TouchableOpacity style={styles.loginBtn} onPress={() => router.push("/home/HomeScreen")}>
           <Text style={styles.loginBtnText}>LOG IN</Text>
         </TouchableOpacity>
 
