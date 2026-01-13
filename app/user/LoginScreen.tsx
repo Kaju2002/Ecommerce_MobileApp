@@ -7,13 +7,13 @@ import {
   StyleSheet,
   Image,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { loginUser } from "@/services/authService";
 import { toast } from "sonner-native";
-
+//
 const LoginScreen = () => {
   const router = useRouter();
   const { login } = useAuth();
