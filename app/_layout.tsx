@@ -8,6 +8,7 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import * as Font from 'expo-font';
 import { useEffect, useState } from 'react';
 import { AuthProvider } from '@/context/AuthContext';
+import { Toaster } from 'sonner-native';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -45,7 +46,17 @@ export default function RootLayout() {
 
           <StatusBar style="auto" />
           {/* </Providers> */}
-
+          <Toaster 
+            position="bottom-center"
+            richColors
+            toastOptions={{
+              style: {
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+              },
+            }}
+          />
         </GestureHandlerRootView>
       </ThemeProvider>
     </AuthProvider>
