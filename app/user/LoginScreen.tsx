@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,49 @@ import {
   StyleSheet,
   Image,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-
+import { useAuth } from "@/context/AuthContext";
+import { loginUser } from "@/services/authService";
+import { toast } from "sonner-native";
+//
 const LoginScreen = () => {
   const router = useRouter();
+  const { login } = useAuth();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleLogin = async () => {
+    if (!email || !password) {
+      toast.error("Missing credentials", {
+        description: "Please enter your email and password",
+      });
+      return;
+    }
+
+    try {
+      const data = await loginUser({ email, password });
+
+      if (data.success && data.user && data.token) {
+        await login(data.user, data.token);
+        toast.success(`Welcome back! 👋`, {
+          description: "You've logged in successfully",
+        });
+        router.replace("/home/HomeScreen");
+      } else {
+        toast.error("Login failed", {
+          description: data.message || "Invalid email or password",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Connection error", {
+        description: "Unable to reach the server. Check your internet connection.",
+      });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -25,18 +62,22 @@ const LoginScreen = () => {
             style={styles.input}
             keyboardType="email-address"
             autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
           />
           <TextInput
             placeholder="Password"
             placeholderTextColor="#888"
             style={styles.input}
             secureTextEntry
+            value={password}
+            onChangeText={setPassword}
           />
         </View>
         <TouchableOpacity style={styles.forgotBtn} onPress={() => router.push("/user/ForgotPasswordScreen")}>
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
-         <TouchableOpacity style={styles.loginBtn} onPress={() => router.push("/home/HomeScreen")}>
+         <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
           <Text style={styles.loginBtnText}>LOG IN</Text>
         </TouchableOpacity>
 

@@ -6,12 +6,12 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
-  Alert,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner-native";
 
 const SignUpScreen = () => {
   const router = useRouter();
@@ -23,30 +23,55 @@ const SignUpScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSignUp = async () => {
+    if (!name || !email || !password || !confirmPassword) {
+      toast.error("Please fill in all fields", {
+        description: "All fields are required to create an account",
+      });
+      return;
+    }
+
     if (password !== confirmPassword) {
-      Alert.alert("Error", "Passwords do not match");
+      toast.error("Passwords don't match", {
+        description: "Please make sure both passwords are the same",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("Password too short", {
+        description: "Password must be at least 6 characters",
+      });
       return;
     }
 
     try {
-      const response = await fetch("http://192.168.1.45:4000/user/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, confirmPassword }),
-      });
+      const response = await fetch(
+        `${process.env.EXPO_PUBLIC_API_URL}/user/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, confirmPassword }),
+        }
+      );
 
       const data = await response.json();
 
       if (data.success) {
-        login(data.user, data.token);
-        Alert.alert("Success", "User registered successfully");
-        router.push("/user/LoginScreen");
+        await login(data.user, data.token);
+        toast.success("Welcome aboard! 🎉", {
+          description: "Your account has been created successfully",
+        });
+        router.replace("/home/HomeScreen");
       } else {
-        Alert.alert("Error", data.message);
+        toast.error("Registration failed", {
+          description: data.message || "Please try again",
+        });
       }
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Server not reachable");
+      toast.error("Connection error", {
+        description: "Unable to reach the server. Check your internet connection.",
+      });
     }
   };
 
@@ -105,7 +130,9 @@ const SignUpScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity style={styles.socialBtn}>
             <Image
-              source={{ uri: "https://developers.google.com/identity/images/g-logo.png" }}
+              source={{
+                uri: "https://developers.google.com/identity/images/g-logo.png",
+              }}
               style={styles.googleIcon}
             />
           </TouchableOpacity>
@@ -123,8 +150,6 @@ const SignUpScreen = () => {
             <Text style={styles.signupLink}>Log In</Text>
           </TouchableOpacity>
         </View>
-
-
       </View>
     </SafeAreaView>
   );
