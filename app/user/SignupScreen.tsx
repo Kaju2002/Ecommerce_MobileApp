@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -6,13 +6,49 @@ import {
   TouchableOpacity,
   StyleSheet,
   Image,
+  Alert,
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAuth } from "@/context/AuthContext";
 
 const SignUpScreen = () => {
   const router = useRouter();
+  const { login } = useAuth();
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const handleSignUp = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://192.168.1.45:4000/user/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, confirmPassword }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        login(data.user, data.token);
+        Alert.alert("Success", "User registered successfully");
+        router.push("/user/LoginScreen");
+      } else {
+        Alert.alert("Error", data.message);
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Server not reachable");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -24,6 +60,8 @@ const SignUpScreen = () => {
             placeholderTextColor="#888"
             style={styles.input}
             autoCapitalize="words"
+            value={name}
+            onChangeText={setName}
           />
           <TextInput
             placeholder="Email address"
@@ -31,21 +69,27 @@ const SignUpScreen = () => {
             style={styles.input}
             keyboardType="email-address"
             autoCapitalize="none"
+            value={email}
+            onChangeText={setEmail}
           />
           <TextInput
             placeholder="Password"
             placeholderTextColor="#888"
             style={styles.input}
             secureTextEntry
+            value={password}
+            onChangeText={setPassword}
           />
           <TextInput
             placeholder="Confirm password"
             placeholderTextColor="#888"
             style={styles.input}
             secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
           />
         </View>
-        <TouchableOpacity style={styles.loginBtn}>
+        <TouchableOpacity style={styles.loginBtn} onPress={handleSignUp}>
           <Text style={styles.loginBtnText}>SIGN UP</Text>
         </TouchableOpacity>
 
