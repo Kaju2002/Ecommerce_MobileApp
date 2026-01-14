@@ -1,4 +1,8 @@
+
+
+
 import React, { useState } from "react";
+import { ActivityIndicator } from "react-native";
 import {
   View,
   Text,
@@ -7,13 +11,48 @@ import {
   StyleSheet,
   Image,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner-native";
+// ...existing imports...
+import { useFocusEffect } from "@react-navigation/native";
+
+interface FieldErrors {
+  name?: string;
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+}
+// Password validation: min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+const validatePassword = (password: string) => {
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&()[\]{}^#_~\-+=|\\:;"'<>,./])[A-Za-z\d@$!%*?&()[\]{}^#_~\-+=|\\:;"'<>,./]{8,}$/;
+  if (!regex.test(password)) {
+    return {
+      valid: false,
+      message:
+        "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
+    };
+  }
+  return { valid: true };
+};
 
 const SignUpScreen = () => {
+  // Clear fields when the screen is focused (works for Expo Router stack navigation)
+  useFocusEffect(
+    React.useCallback(() => {
+      setName("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+      setErrors({});
+    }, [])
+  );
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { login } = useAuth();
 
@@ -23,27 +62,32 @@ const SignUpScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleSignUp = async () => {
-    if (!name || !email || !password || !confirmPassword) {
-      toast.error("Please fill in all fields", {
-        description: "All fields are required to create an account",
-      });
+    const newErrors: FieldErrors = {};
+    if (!name || name.trim().length < 3) {
+      newErrors.name = "Name must be at least 3 characters";
+    }
+    if (!email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    const passwordValidation = validatePassword(password);
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (!passwordValidation.valid) {
+      newErrors.password = passwordValidation.message;
+    }
+    if (!confirmPassword) {
+      newErrors.confirmPassword = "Please confirm your password";
+    } else if (password !== confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
       return;
     }
 
-    if (password !== confirmPassword) {
-      toast.error("Passwords don't match", {
-        description: "Please make sure both passwords are the same",
-      });
-      return;
-    }
-
-    if (password.length < 6) {
-      toast.error("Password too short", {
-        description: "Password must be at least 6 characters",
-      });
-      return;
-    }
-
+    setLoading(true);
     try {
       const response = await fetch(
         `${process.env.EXPO_PUBLIC_API_URL}/user/register`,
@@ -75,6 +119,8 @@ const SignUpScreen = () => {
       toast.error("Connection error", {
         description: "Unable to reach the server. Check your internet connection.",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,8 +135,17 @@ const SignUpScreen = () => {
             style={styles.input}
             autoCapitalize="words"
             value={name}
-            onChangeText={setName}
+            onChangeText={text => {
+              setName(text);
+              setErrors(errors => ({
+                ...errors,
+                name: text.trim().length < 3 ? "Name must be at least 3 characters" : undefined,
+              }));
+            }}
           />
+          {errors.name ? (
+            <Text style={styles.errorText}>{errors.name}</Text>
+          ) : null}
           <TextInput
             placeholder="Email address"
             placeholderTextColor="#888"
@@ -98,27 +153,114 @@ const SignUpScreen = () => {
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={text => {
+              setEmail(text);
+              setErrors(errors => ({
+                ...errors,
+                email: !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)
+                  ? "Please enter a valid email address"
+                  : undefined,
+              }));
+            }}
           />
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#888"
-            style={styles.input}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-          <TextInput
-            placeholder="Confirm password"
-            placeholderTextColor="#888"
-            style={styles.input}
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-          />
+          {errors.email ? (
+            <Text style={styles.errorText}>{errors.email}</Text>
+          ) : null}
+          <View style={{ position: "relative" }}>
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#888"
+              style={styles.input}
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={text => {
+                setPassword(text);
+                const passwordValidation = validatePassword(text);
+                setErrors(errors => ({
+                  ...errors,
+                  password: !text
+                    ? "Password is required"
+                    : !passwordValidation.valid
+                    ? passwordValidation.message
+                    : undefined,
+                  // Also update confirmPassword error if needed
+                  confirmPassword:
+                    confirmPassword && text !== confirmPassword
+                      ? "Passwords do not match"
+                      : errors.confirmPassword && text === confirmPassword
+                      ? undefined
+                      : errors.confirmPassword,
+                }));
+              }}
+            />
+            <TouchableOpacity
+              style={{ position: "absolute", right: 16, top: 18 }}
+              onPress={() => setShowPassword((prev) => !prev)}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off" : "eye"}
+                size={22}
+                color="#888"
+              />
+            </TouchableOpacity>
+            {errors.password ? (
+              <Text style={styles.errorText}>{errors.password}</Text>
+            ) : null}
+          </View>
+          <View style={{ position: "relative" }}>
+            <TextInput
+              placeholder="Confirm password"
+              placeholderTextColor="#888"
+              style={styles.input}
+              secureTextEntry={!showConfirmPassword}
+              value={confirmPassword}
+              onChangeText={text => {
+                setConfirmPassword(text);
+                // Remove confirmPassword error while typing
+                setErrors(errors => ({
+                  ...errors,
+                  confirmPassword: undefined,
+                }));
+              }}
+              onBlur={() => {
+                setErrors(errors => ({
+                  ...errors,
+                  confirmPassword:
+                    confirmPassword.length > 0 && confirmPassword !== password
+                      ? "Passwords do not match"
+                      : undefined,
+                }));
+              }}
+            />
+            <TouchableOpacity
+              style={{ position: "absolute", right: 16, top: 18 }}
+              onPress={() => setShowConfirmPassword((prev) => !prev)}
+            >
+              <Ionicons
+                name={showConfirmPassword ? "eye-off" : "eye"}
+                size={22}
+                color="#888"
+              />
+            </TouchableOpacity>
+            {errors.confirmPassword ? (
+              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+            ) : null}
+          </View>
         </View>
-        <TouchableOpacity style={styles.loginBtn} onPress={handleSignUp}>
-          <Text style={styles.loginBtnText}>SIGN UP</Text>
+        <Text style={styles.socialProof}>Join 10,000+ happy shoppers!</Text>
+        <TouchableOpacity
+          style={[styles.loginBtn, loading && { opacity: 0.6 }]}
+          onPress={handleSignUp}
+          disabled={loading}
+        >
+          {loading ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.loginBtnText}>Creating...</Text>
+            </View>
+          ) : (
+            <Text style={styles.loginBtnText}>Create Account</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.dividerContainer}>
@@ -190,6 +332,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     fontFamily: "ProductSans-Regular",
     color: "#222",
+  },
+  errorText: {
+    color: '#e11d48',
+    fontSize: 13,
+    marginTop: -18,
+    marginBottom: 12,
+    marginLeft: 2,
+    fontFamily: 'ProductSans-Regular',
   },
   forgotBtn: {
     alignSelf: "flex-end",
@@ -269,5 +419,15 @@ const styles = StyleSheet.create({
     fontFamily: "ProductSans-Regular",
     textDecorationLine: "underline",
     fontWeight: "bold",
+  },
+  socialProof: {
+    color: "#16a34a",
+    fontSize: 15,
+    fontFamily: "ProductSans-Regular",
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 16,
+    marginTop: 8,
+    letterSpacing: 0.2,
   },
 });
