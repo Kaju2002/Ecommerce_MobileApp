@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -18,6 +19,7 @@ const VerifyOTPScreen = () => {
   const [otp, setOtp] = useState(["", "", "", ""]);
   const [timer, setTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
+  const [loading, setLoading] = useState(false);
   
   const inputRefs = useRef<(TextInput | null)[]>([]);
 
@@ -54,6 +56,14 @@ const VerifyOTPScreen = () => {
     }
   };
 
+  // Auto-verify when all 4 digits are filled (fixes issue after resend)
+  React.useEffect(() => {
+    if (otp.every(digit => digit.length === 1)) {
+      handleVerifyOTP();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otp]);
+
   const handleKeyPress = (e: any, index: number) => {
     if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
@@ -62,14 +72,13 @@ const VerifyOTPScreen = () => {
 
   const handleVerifyOTP = async () => {
     const otpCode = otp.join("");
-    
     if (otpCode.length !== 4) {
       toast.error("Invalid OTP", {
         description: "Please enter a valid 4-digit code",
       });
       return;
     }
-
+    setLoading(true);
     try {
       // Verify the OTP with your backend
       const response = await fetch(
@@ -80,9 +89,7 @@ const VerifyOTPScreen = () => {
           body: JSON.stringify({ email, otp: otpCode }),
         }
       );
-
       const data = await response.json();
-
       if (data.success) {
         toast.success("Verified! 🎉", {
           description: "Your account has been verified successfully",
@@ -98,6 +105,8 @@ const VerifyOTPScreen = () => {
       toast.error("Verification failed", {
         description: "An error occurred. Please try again.",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -116,6 +125,14 @@ const VerifyOTPScreen = () => {
 
       const data = await response.json();
 
+      if (response.status === 429) {
+        toast.error("Please wait before resending", {
+          description: data.message || "You must wait before requesting another OTP.",
+        });
+        // Do not reset timer or OTP fields
+        return;
+      }
+
       if (data.success) {
         toast.success("OTP Sent!", {
           description: "A new verification code has been sent to your email",
@@ -129,13 +146,9 @@ const VerifyOTPScreen = () => {
         });
       }
     } catch (error) {
-      // For demo purposes
-      toast.success("OTP Sent!", {
-        description: "A new verification code has been sent to your email",
+      toast.error("Failed to resend", {
+        description: "An error occurred. Please try again.",
       });
-      setTimer(60);
-      setCanResend(false);
-      setOtp(["", "", "", ""]);
     }
   };
 
@@ -160,14 +173,14 @@ const VerifyOTPScreen = () => {
         {/* Shield Icon */}
         <View style={styles.iconContainer}>
           <View style={styles.iconCircle}>
-            <Ionicons name="shield-checkmark" size={40} color="#3B82F6" />
+            <Ionicons name="shield-checkmark" size={40} color="#222" />
           </View>
         </View>
 
         {/* Title & Description */}
         <Text style={styles.title}>Hi {displayName}! Verify Your Account</Text>
         <Text style={styles.description}>
-          We've sent a 4-digit verification code to{"\n"}
+          We&apos;ve sent a 4-digit verification code to{"\n"}
           <Text style={styles.emailText}>{email || "your email"}</Text>
         </Text>
 
@@ -176,7 +189,9 @@ const VerifyOTPScreen = () => {
           {otp.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(ref) => (inputRefs.current[index] = ref)}
+              ref={(ref) => {
+                inputRefs.current[index] = ref;
+              }}
               style={[
                 styles.otpInput,
                 digit ? styles.otpInputFilled : null,
@@ -193,15 +208,23 @@ const VerifyOTPScreen = () => {
 
         {/* Verify Button */}
         <TouchableOpacity 
-          style={styles.verifyButton} 
+          style={[styles.verifyButton, loading && { opacity: 0.6 }]} 
           onPress={handleVerifyOTP}
+          disabled={loading}
         >
-          <Text style={styles.verifyButtonText}>Verify OTP</Text>
+          {loading ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator color="#fff" style={{ marginRight: 8 }} />
+              <Text style={styles.verifyButtonText}>Verifying...</Text>
+            </View>
+          ) : (
+            <Text style={styles.verifyButtonText}>Verify OTP</Text>
+          )}
         </TouchableOpacity>
 
         {/* Resend OTP */}
         <View style={styles.resendContainer}>
-          <Text style={styles.resendText}>Didn't receive the code? </Text>
+          <Text style={styles.resendText}>Didn&apos;t receive the code? </Text>
           <TouchableOpacity onPress={handleResendOTP} disabled={!canResend}>
             <Text style={[
               styles.resendLink,
