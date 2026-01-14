@@ -57,11 +57,14 @@ const SignUpScreen = () => {
       const data = await response.json();
 
       if (data.success) {
-        await login(data.user, data.token);
-        toast.success("Welcome aboard! 🎉", {
-          description: "Your account has been created successfully",
+        toast.success("Account created! 🎉", {
+          description: "Please verify your email to continue",
         });
-        router.replace("/home/HomeScreen");
+        // Navigate to OTP verification screen with name and email
+        router.push({
+          pathname: "/user/VerfifyOTPScreen",
+          params: { name, email },
+        });
       } else {
         toast.error("Registration failed", {
           description: data.message || "Please try again",
