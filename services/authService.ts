@@ -1,3 +1,74 @@
+// Reset Password API
+export const resetPassword = async (
+  email: string,
+  password: string,
+  confirmPassword: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await fetch(`${API_URL}/user/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, confirmPassword }),
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Reset Password Service Error:", error);
+    throw error;
+  }
+};
+// Resend Reset OTP API
+export const resendResetOtp = async (
+  email: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await fetch(`${API_URL}/user/resend-reset-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Resend Reset OTP Service Error:", error);
+    throw error;
+  }
+};
+// Verify Reset OTP API
+export const verifyResetOtp = async (
+  email: string,
+  otp: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await fetch(`${API_URL}/user/verify-reset-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp }),
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Verify Reset OTP Service Error:", error);
+    throw error;
+  }
+};
+// Forgot Password API
+export const forgotPassword = async (
+  email: string
+): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await fetch(`${API_URL}/user/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Forgot Password Service Error:", error);
+    throw error;
+  }
+};
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 

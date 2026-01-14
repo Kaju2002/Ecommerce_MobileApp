@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { resetPassword } from "@/services/authService";
+import { toast } from "sonner-native";
 import {
   View,
   Text,
@@ -7,17 +9,43 @@ import {
   StyleSheet,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import SuccessModal from "@/components/ui/SuccessModal";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const NewPasswordScreen = () => {
   const router = useRouter();
+  const { email } = useLocalSearchParams<{ email: string }>();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const isValid = password.length > 0 && confirm.length > 0;
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      toast.error("Missing email", { description: "Email is required for password reset." });
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await resetPassword(email, password, confirm);
+      if (result.success) {
+        setPassword("");
+        setConfirm("");
+        setShowSuccessModal(true);
+      } else {
+        toast.error("Reset failed", { description: result.message });
+      }
+    } catch {
+      toast.error("Reset failed", { description: "Server error" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -30,7 +58,7 @@ const NewPasswordScreen = () => {
           Your new password must be different{"\n"}
           from previously used password
         </Text>
-         <View style={styles.inputWrapper}>
+        <View style={styles.inputWrapper}>
           <Text style={styles.label}>New Password</Text>
           <View style={styles.inputRow}>
             <TextInput
@@ -70,17 +98,25 @@ const NewPasswordScreen = () => {
         </View>
 
         <TouchableOpacity
-          style={[styles.confirmBtn, !isValid && styles.confirmBtnDisabled]}
-          disabled={!isValid}
-          onPress={() => {
-            // handle password reset, then navigate
-            // router.replace("/user/LoginScreen");
-          }}
+          style={[styles.confirmBtn, (!isValid || loading) && styles.confirmBtnDisabled]}
+          disabled={!isValid || loading}
+          onPress={handleResetPassword}
         >
-          <Text style={styles.confirmBtnText}>Confirm</Text>
+          {loading ? (
+            <Text style={styles.confirmBtnText}>Resetting...</Text>
+          ) : (
+            <Text style={styles.confirmBtnText}>Confirm</Text>
+          )}
         </TouchableOpacity>
-
       </View>
+      <SuccessModal
+        isVisible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        onBrowseHome={() => {
+          setShowSuccessModal(false);
+          router.replace("/home/HomeScreen");
+        }}
+      />
     </SafeAreaView>
   );
 };

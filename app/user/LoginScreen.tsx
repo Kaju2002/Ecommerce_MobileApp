@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ActivityIndicator } from "react-native";
 import {
   View,
   Text,
@@ -20,6 +21,8 @@ const LoginScreen = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -28,10 +31,9 @@ const LoginScreen = () => {
       });
       return;
     }
-
+    setLoading(true);
     try {
       const data = await loginUser({ email, password });
-
       if (data.success && data.user && data.token) {
         await login(data.user, data.token);
         toast.success(`Welcome back! 👋`, {
@@ -48,6 +50,8 @@ const LoginScreen = () => {
       toast.error("Connection error", {
         description: "Unable to reach the server. Check your internet connection.",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,20 +69,43 @@ const LoginScreen = () => {
             value={email}
             onChangeText={setEmail}
           />
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#888"
-            style={styles.input}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
+          <View style={{ position: "relative" }}>
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#888"
+              style={styles.input}
+              secureTextEntry={!showPassword}
+              value={password}
+              onChangeText={setPassword}
+            />
+            <TouchableOpacity
+              style={{ position: "absolute", right: 16, top: 18 }}
+              onPress={() => setShowPassword((prev) => !prev)}
+            >
+              <Ionicons
+                name={showPassword ? "eye-off" : "eye"}
+                size={22}
+                color="#888"
+              />
+            </TouchableOpacity>
+          </View>
         </View>
         <TouchableOpacity style={styles.forgotBtn} onPress={() => router.push("/user/ForgotPasswordScreen")}>
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
-         <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
-          <Text style={styles.loginBtnText}>LOG IN</Text>
+        <TouchableOpacity
+          style={[styles.loginBtn, loading && { opacity: 0.6 }]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator color="#fff" />
+              <Text style={[styles.loginBtnText, { marginLeft: 8 }]}>Logging in...</Text>
+            </View>
+          ) : (
+            <Text style={styles.loginBtnText}>LOG IN</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.dividerContainer}>
