@@ -8,13 +8,29 @@ import {
   TextInput as RNTextInput,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { verifyResetOtp, resendResetOtp } from "@/services/authService";
+import { toast } from "sonner-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const VerificationScreen = () => {
   const router = useRouter();
+  const { email } = useLocalSearchParams<{ email: string }>();
   const [code, setCode] = useState(["", "", "", ""]);
-  const [timer, setTimer] = useState(10);
+  const [timer, setTimer] = useState(60);
+    // Resend OTP handler
+    const handleResend = async () => {
+      if (timer > 0) return;
+      try {
+        const result = await resendResetOtp(email);
+        toast.success("OTP resent", { description: result.message });
+        setTimer(60);
+        setCode(["", "", "", ""]);
+      } catch (error) {
+        toast.error("Resend failed", { description: "Could not resend OTP." });
+      }
+    };
+  const [loading, setLoading] = useState(false);
   const inputs = useRef<Array<RNTextInput | null>>([]);
 
   // Timer countdown effect
@@ -24,7 +40,7 @@ const VerificationScreen = () => {
     return () => clearInterval(interval);
   }, [timer]);
 
-  const handleChange = (text: string, idx: number) => {
+  const handleChange = async (text: string, idx: number) => {
     if (!/^\d*$/.test(text)) return; // Only allow numbers
     const newCode = [...code];
     newCode[idx] = text;
@@ -34,11 +50,25 @@ const VerificationScreen = () => {
     if (text && idx < 3 && inputs.current[idx + 1]) {
       inputs.current[idx + 1]?.focus();
     }
-    // Optionally, handle submit if all digits entered
-    // if (newCode.every((v) => v)) { ... }
+
+    // Auto-verify when all digits entered
     if (newCode.every((v) => v.length === 1)) {
-    router.replace("/user/NewPassword");
-  }
+      setLoading(true);
+      try {
+        const otp = newCode.join("");
+        const result = await verifyResetOtp(email, otp);
+        if (result.success) {
+          toast.success("OTP Verified", { description: result.message });
+          router.replace({ pathname: "/user/NewPassword", params: { email } });
+        } else {
+          toast.error("Verification failed", { description: result.message });
+        }
+      } catch (error) {
+        toast.error("Verification failed", { description: "Server error" });
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
   return (
@@ -66,12 +96,21 @@ const VerificationScreen = () => {
               autoFocus={idx === 0}
               textAlign="center"
               selectionColor="#222"
+              editable={!loading}
             />
           ))}
         </View>
-        <Text style={styles.resendText}>
-          Resend in 00:{timer.toString().padStart(2, "0")}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 8 }}>
+          {timer > 0 ? (
+            <Text style={styles.resendText}>
+              Resend in 00:{timer.toString().padStart(2, "0")}
+            </Text>
+          ) : (
+            <TouchableOpacity onPress={handleResend}>
+              <Text style={[styles.resendText, { color: "#3B82F6", fontWeight: "bold" }]}>Resend Code</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </SafeAreaView>
   );

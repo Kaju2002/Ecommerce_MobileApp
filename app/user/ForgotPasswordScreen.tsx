@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -9,9 +9,40 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { toast } from "sonner-native";
+import { forgotPassword } from "@/services/authService";
+import { ActivityIndicator } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 
 const ForgotPasswordScreen = () => {
+  // Clear email field when screen is focused (e.g., after navigating back)
+  useFocusEffect(
+    React.useCallback(() => {
+      setEmail("");
+    }, [])
+  );
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast.error("Email required", { description: "Please enter your email address." });
+      return;
+    }
+    setLoading(true);
+    try {
+      const result = await forgotPassword(email);
+      toast.success("Request sent", { description: result.message });
+      // Navigate to verification screen (pass email)
+      router.push({ pathname: "/user/VerficationScreen", params: { email } });
+    } catch (error) {
+      toast.error("Error", { description: "Could not send reset request." });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
@@ -27,15 +58,23 @@ const ForgotPasswordScreen = () => {
         <View style={styles.inputBox}>
           <Ionicons name="mail-outline" size={18} color="#bdbdbd" style={styles.inputIcon} />
           <TextInput
-            placeholder="enter your email here"
-            placeholderTextColor="#444"
+            placeholder="Enter your email"
+            value={email}
+            onChangeText={setEmail}
             style={styles.inputField}
             keyboardType="email-address"
             autoCapitalize="none"
           />
         </View>
-        <TouchableOpacity style={styles.sendBtn} onPress={() => router.push("/user/VerficationScreen")}>
-          <Text style={styles.sendBtnText}>Send</Text>
+        <TouchableOpacity style={styles.sendBtn} onPress={handleForgotPassword} disabled={loading}>
+          {loading ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator color="#fff" />
+              <Text style={[styles.sendBtnText, { marginLeft: 8 }]}>Sending...</Text>
+            </View>
+          ) : (
+            <Text style={styles.sendBtnText}>Send</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
